@@ -1,0 +1,143 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  firstName     String
+  lastName      String
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  password      String
+  nationality   String
+  age           Int
+  gender        String
+  credits       Int       @default(10)
+  level         String    @default("BEGINNER")
+  accounts      Account[]
+  sessions      Session[]
+  progress      UserProgress?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Course {
+  id          String    @id @default(cuid())
+  title       String
+  description String
+  level       String    // BEGINNER, INTERMEDIATE, ADVANCED
+  duration    Int       // en minutes
+  imageUrl    String?
+  chapters    Chapter[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Chapter {
+  id        String    @id @default(cuid())
+  title     String
+  order     Int
+  courseId  String
+  course    Course    @relation(fields: [courseId], references: [id])
+  lessons   Lesson[]
+}
+
+model Lesson {
+  id            String    @id @default(cuid())
+  title         String
+  content       String    @db.Text
+  order         Int
+  duration      Int
+  chapterId     String
+  chapter       Chapter   @relation(fields: [chapterId], references: [id])
+  progress      LessonProgress[]
+}
+
+model Exercise {
+  id            String    @id @default(cuid())
+  title         String
+  description   String
+  difficulty    String
+  content       String    @db.Text
+  solution      String    @db.Text
+  categoryId    String
+  category      Category  @relation(fields: [categoryId], references: [id])
+  progress      ExerciseProgress[]
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model Category {
+  id        String     @id @default(cuid())
+  name      String     @unique
+  exercises Exercise[]
+}
+
+model UserProgress {
+  id            String    @id @default(cuid())
+  userId        String    @unique
+  user          User      @relation(fields: [userId], references: [id])
+  skillLevel    String    // BEGINNER, INTERMEDIATE, ADVANCED
+  completedLessons LessonProgress[]
+  completedExercises ExerciseProgress[]
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model LessonProgress {
+  id            String    @id @default(cuid())
+  lessonId      String
+  lesson        Lesson    @relation(fields: [lessonId], references: [id])
+  progressId    String
+  userProgress  UserProgress @relation(fields: [progressId], references: [id])
+  completed     Boolean   @default(false)
+  completedAt   DateTime?
+
+  @@unique([lessonId, progressId])
+}
+
+model ExerciseProgress {
+  id            String    @id @default(cuid())
+  exerciseId    String
+  exercise      Exercise  @relation(fields: [exerciseId], references: [id])
+  progressId    String
+  userProgress  UserProgress @relation(fields: [progressId], references: [id])
+  completed     Boolean   @default(false)
+  score         Int?      // Score obtenu si applicable
+  completedAt   DateTime?
+
+  @@unique([exerciseId, progressId])
+} 
